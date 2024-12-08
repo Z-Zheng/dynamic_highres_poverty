@@ -125,15 +125,11 @@ class TransformerMLP(er.ERModule):
             feature = self.encoder(x)[-1]
             feature = torch.mean(feature, dim=(2, 3))
             feature = self.mlp(feature)
-            feature1, feature2 = rearrange(feature, '(b t) c -> t b c', t=2)
 
             c_feature = rearrange(feature, '(b t) c -> b (t c)', t=2)
             c_feature = self.temporal_mlp(c_feature)
 
-            # t1_awi = self.awi_linear(feature1).squeeze()
-            # t2_awi = self.awi_linear(feature2).squeeze()
             c_awi = self.change_linear(c_feature).squeeze()
-            # c_awi = 0.5 * c_awi + 0.5 * (t2_awi - t1_awi)
 
         if self.training:
             if inc // self.cfg.in_channels == 1:
@@ -145,12 +141,8 @@ class TransformerMLP(er.ERModule):
             elif inc // self.cfg.in_channels == 2:
                 gt_c = y['awi']
 
-                gt_t1 = y['t1_awi']
-                gt_t2 = y['t2_awi']
                 return {
                     'train/c_mse_loss': non_mse_loss(c_awi.reshape(-1), gt_c.reshape(-1)),
-                    # 'train/t1_mse_loss': non_mse_loss(t1_awi.reshape(-1), gt_t1.reshape(-1)),
-                    # 'train/t2_mse_loss': non_mse_loss(t2_awi.reshape(-1), gt_t2.reshape(-1)),
                     'train/r2': r_square(c_awi.reshape(-1), gt_c.reshape(-1)),
                 }
             else:
